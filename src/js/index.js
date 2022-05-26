@@ -5,6 +5,21 @@ class DrawingBoard {
     backgroundColor = "#FFFFFF";
     IsNavigatorVisible = false;
     undoArray = [];
+    containerEl;
+    canvasEl;
+    toolbarEl;
+    brushEl;
+    colorPickerEl;
+    brushPanelEl;
+    brushsliderEl;
+    brushSizePreviewEl;
+    eraserEl;
+    navigatorEl;
+    navigatorImage;
+    canvasImage;
+    undoEl;
+    clearEl;
+    downloadLink;
     constructor() {
         this.assingElement();
         this.initContext();
@@ -26,6 +41,8 @@ class DrawingBoard {
         this.navigatorImage = this.containerEl.querySelector('#imgNav');
         this.canvasImage = this.navigatorImage.querySelector('#canvasImg');
         this.undoEl = this.toolbarEl.querySelector('#undo');
+        this.clearEl = this.toolbarEl.querySelector('#clear');
+        this.downloadLink = this.toolbarEl.querySelector('#download');
     }
 
     initContext (){
@@ -48,6 +65,20 @@ class DrawingBoard {
         this.eraserEl.addEventListener('click', this.onClickEraser.bind(this));
         this.navigatorEl.addEventListener('click', this.onClickNavigator.bind(this));
         this.undoEl.addEventListener('click', this.onClickUndo.bind(this));
+        this.clearEl.addEventListener('click', this.onClickClear.bind(this));
+        this.downloadLink.addEventListener('click', this.onClickDownload.bind(this));
+    }
+
+    onClickDownload(){
+        this.downloadLink.href = this.canvasEl.toDataURL('image/jpeg', 1);
+        this.downloadLink.download = 'exmaple.jpeg';
+    }
+
+    onClickClear(){
+        this.saveState();
+        this.context.clearRect(0,0, this.canvasEl.width, this.canvasEl.height);
+        this.updateNavigator();
+        this.initCanvasBackgroundColor();
     }
 
     onClickUndo (){
@@ -73,6 +104,7 @@ class DrawingBoard {
             this.undoArray.shift();
         }
         this.undoArray.push(this.canvasEl.toDataURL());
+        console.log(this.undoArray);
     }
 
     onClickNavigator(e){
