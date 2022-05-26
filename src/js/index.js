@@ -1,9 +1,14 @@
 class DrawingBoard {
     MODE = "NONE" // NONE BRUSH ERASER
     IsMouseDown = false; // true
+    eraserColor = "#FFFFFF";
+    backgroundColor = "#FFFFFF";
+    IsNavigatorVisible = false;
+    undoArray = [];
     constructor() {
         this.assingElement();
         this.initContext();
+        this.initCanvasBackgroundColor();
         this.addEvent();
     }
 
@@ -16,10 +21,20 @@ class DrawingBoard {
         this.brushPanelEl = this.containerEl.querySelector('#brushPanel');
         this.brushsliderEl = this.brushPanelEl.querySelector('#brushSize');
         this.brushSizePreviewEl = this.brushPanelEl.querySelector('#brushSizePreview');
+        this.eraserEl = this.toolbarEl.querySelector('#eraser');
+        this.navigatorEl = this.toolbarEl.querySelector('#navigator');
+        this.navigatorImage = this.containerEl.querySelector('#imgNav');
+        this.canvasImage = this.navigatorImage.querySelector('#canvasImg');
+        this.undoEl = this.toolbarEl.querySelector('#undo');
     }
 
     initContext (){
         this.context = this.canvasEl.getContext('2d');
+    }
+
+    initCanvasBackgroundColor(){
+        this.context.fillStyle = this.backgroundColor;
+        this.context.fillRect(0,0, this.canvasEl.width, this.canvasEl.height);
     }
 
     addEvent(){
@@ -30,8 +45,60 @@ class DrawingBoard {
         this.canvasEl.addEventListener('mouseout', this.onMouseOut.bind(this));
         this.brushsliderEl.addEventListener('input', this.onChangeBrushSize.bind(this));
         this.colorPickerEl.addEventListener('input', this.onChangeColor.bind(this));
+        this.eraserEl.addEventListener('click', this.onClickEraser.bind(this));
+        this.navigatorEl.addEventListener('click', this.onClickNavigator.bind(this));
+        this.undoEl.addEventListener('click', this.onClickUndo.bind(this));
     }
 
+    onClickUndo (){
+        if(this.undoArray.length === 0){
+            alert('더이상 실행취소 불가능합니다.')
+            return;
+        }
+        let previousDataUrl = this.undoArray.pop();
+        let previousImage = new Image();
+        previousImage.onload = () => {
+            this.context.clearRect(0,0, this.canvasEl.width, this.canvasEl.height);
+            this.context.drawImage(
+                previousImage,
+                0, 0, this.canvasEl.width, this.canvasEl.height,
+                0, 0, this.canvasEl.width, this.canvasEl.height
+            );
+        }
+        previousImage.src = previousDataUrl;
+    }
+
+    saveState(){
+        if(this.undoArray.length > 4){
+            this.undoArray.shift();
+        }
+        this.undoArray.push(this.canvasEl.toDataURL());
+    }
+
+    onClickNavigator(e){
+        this.IsNavigatorVisible = !e.currentTarget.classList.contains('active');
+        e.currentTarget.classList.toggle('active');
+        this.navigatorImage.classList.toggle('hide');
+        this.updateNavigator();
+    }
+
+    updateNavigator(){
+        if(!this.IsNavigatorVisible) return;
+        this.canvasImage.src = this.canvasEl.toDataURL();
+    }
+
+    onClickEraser(e){
+        const IsActive = e.currentTarget.classList.contains('active');
+        this.MODE = IsActive ? "NONE" : "ERASER";
+        this.canvasEl.style.cursor = IsActive ? "default" : "crosshair";
+        if(this.MODE === 'NONE'){
+            this.brushPanelEl.classList.add('hide');
+        }
+        //this.brushPanelEl.classList.toggle('hide');
+        e.currentTarget.classList.toggle('active');
+        this.brushEl.classList.remove('active');
+
+    }
 
     onChangeColor(e){
         this.brushSizePreviewEl.style.backgroundColor = e.target.value;
@@ -49,10 +116,13 @@ class DrawingBoard {
         this.context.beginPath();
         this.context.moveTo(currentPosition.x, currentPosition.y);
         this.context.lineCap = 'round';
-        this.context.strokeStyle = this.colorPickerEl.value;
+        if(this.MODE === "BRUSH"){
+            this.context.strokeStyle = this.colorPickerEl.value;
+        }else if(this.MODE === "ERASER"){
+            this.context.strokeStyle = this.eraserColor;
+        }
         this.context.lineWidth = this.brushsliderEl.value;
-        // this.context.lineTo(400,400);
-        // this.context.stroke();
+        this.saveState();
     }
 
     onMouseMove(e){
@@ -65,12 +135,13 @@ class DrawingBoard {
     onMouseOut(){
         if(this.MODE === "NONE") return;
         this.IsMouseDown = false;
+        this.updateNavigator();
     }
 
     onMouseUp(){
         if(this.MODE === "NONE") return;
         this.IsMouseDown = false;
-
+        this.updateNavigator();
     }
 
     getMousePosition(e){
@@ -82,12 +153,15 @@ class DrawingBoard {
     }
 
     onClickBrush(e){
-        const IsActive = e.currentTarget.classList.contains('active')
+        const IsActive = e.currentTarget.classList.contains('active');
         this.MODE = IsActive ? "NONE" : "BRUSH";
         this.canvasEl.style.cursor = IsActive ? "default" : "crosshair";
-        this.brushPanelEl.classList.toggle('hide');
-        this.brushEl.classList.toggle('active');
-
+        // this.brushPanelEl.classList.toggle('hide');
+        if(this.MODE === 'NONE'){
+            this.brushPanelEl.classList.add('hide');
+        }
+        e.currentTarget.classList.toggle('active');
+        this.eraserEl.classList.remove('active');
     }
 }
 
